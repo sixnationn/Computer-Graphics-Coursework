@@ -116,7 +116,8 @@
       <ProxyFileName>%(Filename)_p.c</ProxyFileName>
     </Midl>
     <PostBuildEvent>
-      <Message></Message>
+      <Message>
+      </Message>
       <Command>setlocal
 "C:\Program Files\CMake\bin\cmake.exe" -E copy C:/Users/HeyTh/Documents/GitHub/Computer-Graphics-Coursework/build/$(Configuration)/Computer_Graphics_Coursework.exe C:/Users/HeyTh/Documents/GitHub/Computer-Graphics-Coursework/source/
 if %errorlevel% neq 0 goto :cmEnd
@@ -173,7 +174,8 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
       <ProxyFileName>%(Filename)_p.c</ProxyFileName>
     </Midl>
     <PostBuildEvent>
-      <Message></Message>
+      <Message>
+      </Message>
       <Command>setlocal
 "C:\Program Files\CMake\bin\cmake.exe" -E copy C:/Users/HeyTh/Documents/GitHub/Computer-Graphics-Coursework/build/$(Configuration)/Computer_Graphics_Coursework.exe C:/Users/HeyTh/Documents/GitHub/Computer-Graphics-Coursework/source/
 if %errorlevel% neq 0 goto :cmEnd
@@ -230,7 +232,8 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
       <ProxyFileName>%(Filename)_p.c</ProxyFileName>
     </Midl>
     <PostBuildEvent>
-      <Message></Message>
+      <Message>
+      </Message>
       <Command>setlocal
 "C:\Program Files\CMake\bin\cmake.exe" -E copy C:/Users/HeyTh/Documents/GitHub/Computer-Graphics-Coursework/build/$(Configuration)/Computer_Graphics_Coursework.exe C:/Users/HeyTh/Documents/GitHub/Computer-Graphics-Coursework/source/
 if %errorlevel% neq 0 goto :cmEnd
@@ -286,7 +289,8 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
       <ProxyFileName>%(Filename)_p.c</ProxyFileName>
     </Midl>
     <PostBuildEvent>
-      <Message></Message>
+      <Message>
+      </Message>
       <Command>setlocal
 "C:\Program Files\CMake\bin\cmake.exe" -E copy C:/Users/HeyTh/Documents/GitHub/Computer-Graphics-Coursework/build/$(Configuration)/Computer_Graphics_Coursework.exe C:/Users/HeyTh/Documents/GitHub/Computer-Graphics-Coursework/source/
 if %errorlevel% neq 0 goto :cmEnd
