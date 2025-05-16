@@ -1,10 +1,11 @@
-#include <iostream>
+﻿#include <iostream>
 #include <cmath>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include <common/shader.hpp>
 #include <common/texture.hpp>
@@ -13,277 +14,383 @@
 #include <common/model.hpp>
 #include <common/light.hpp>
 
-// Function prototypes
-void keyboardInput(GLFWwindow *window);
+void keyboardInput(GLFWwindow* window);
 void mouseCallback(GLFWwindow* window, double xpos, double ypos);
 void scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
+void checkCollisions(Camera& camera);
 
-Camera camera(glm::vec3(0.0f, 0.0f, 5.0f));
+Camera camera(glm::vec3(0.0f, 0.0f, 7.0f)); 
 float lastX = 1024.0f / 2.0f;
 float lastY = 768.0f / 2.0f;
 bool firstMouse = true;
 
-int main( void )
+const float ROOM_WIDTH = 10.0f;
+const float ROOM_DEPTH = 10.0f;
+const float ROOM_HEIGHT = 5.0f;
+
+Light light(glm::vec3(2.0f, 3.0f, 2.0f)); 
+Light spotLight(
+    glm::vec3(0.0f, 3.5f, 0.0f),           
+    glm::vec3(1.0f, 1.0f, 0.0f),           
+    glm::vec3(0.0f, -1.0f, 0.0f),          
+    glm::cos(glm::radians(12.5f)),         
+    glm::cos(glm::radians(17.5f))          
+);
+
+const float LIGHT_SPEED = 2.0f;
+
+int main()
 {
-    // =========================================================================
-    // Window creation - you shouldn't need to change this code
-    // -------------------------------------------------------------------------
-    // Initialise GLFW
-    if( !glfwInit() )
+    if (!glfwInit())
     {
-        fprintf( stderr, "Failed to initialize GLFW\n" );
-        getchar();
+        std::cerr << "Failed to initialize GLFW\n";
         return -1;
     }
 
     glfwWindowHint(GLFW_SAMPLES, 4);
-    glfwWindowHint(GLFW_RESIZABLE,GL_FALSE);
+    glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    // Open a window and create its OpenGL context
-    GLFWwindow* window;
-    window = glfwCreateWindow(1024, 768, "Computer Graphics Coursework", NULL, NULL);
-    
-    if( window == NULL ){
-        fprintf(stderr, "Failed to open GLFW window.\n");
-        getchar();
+    GLFWwindow* window = glfwCreateWindow(1024, 768, "CG Coursework", NULL, NULL);
+    if (!window)
+    {
+        std::cerr << "Failed to create GLFW window\n";
         glfwTerminate();
         return -1;
     }
     glfwMakeContextCurrent(window);
 
-    // Initialize GLEW
-    glewExperimental = true; // Needed for core profile
-    if (glewInit() != GLEW_OK) {
-        fprintf(stderr, "Failed to initialize GLEW\n");
-        getchar();
+    glewExperimental = true;
+    if (glewInit() != GLEW_OK)
+    {
+        std::cerr << "Failed to initialize GLEW\n";
         glfwTerminate();
         return -1;
     }
-    // -------------------------------------------------------------------------
-    // End of window creation
-    // =========================================================================
-// Enable depth testing
+
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
+    glDisable(GL_CULL_FACE); 
 
-    // Ensure we can capture keyboard and mouse inputs
     glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetCursorPosCallback(window, mouseCallback);
     glfwSetScrollCallback(window, scrollCallback);
 
-    // Define vertices (unchanged)
-    const float vertices[] = {
-        // front
-        -1.0f, -1.0f,  1.0f,
-         1.0f, -1.0f,  1.0f,
-         1.0f,  1.0f,  1.0f,
-        -1.0f, -1.0f,  1.0f,
-         1.0f,  1.0f,  1.0f,
-        -1.0f,  1.0f,  1.0f,
-        // right
-         1.0f, -1.0f,  1.0f,
-         1.0f, -1.0f, -1.0f,
-         1.0f,  1.0f, -1.0f,
-         1.0f, -1.0f,  1.0f,
-         1.0f,  1.0f, -1.0f,
-         1.0f,  1.0f,  1.0f,
-         // back
-          1.0f, -1.0f, -1.0f,
-         -1.0f, -1.0f, -1.0f,
-         -1.0f,  1.0f, -1.0f,
-          1.0f, -1.0f, -1.0f,
-         -1.0f,  1.0f, -1.0f,
-          1.0f,  1.0f, -1.0f,
-          // left
-          -1.0f, -1.0f, -1.0f,
-          -1.0f, -1.0f,  1.0f,
-          -1.0f,  1.0f,  1.0f,
-          -1.0f, -1.0f, -1.0f,
-          -1.0f,  1.0f,  1.0f,
-          -1.0f,  1.0f, -1.0f,
-          // bottom
-          -1.0f, -1.0f, -1.0f,
-           1.0f, -1.0f, -1.0f,
-           1.0f, -1.0f,  1.0f,
-          -1.0f, -1.0f, -1.0f,
-           1.0f, -1.0f,  1.0f,
-          -1.0f, -1.0f,  1.0f,
-          // top
-          -1.0f,  1.0f,  1.0f,
-           1.0f,  1.0f,  1.0f,
-           1.0f,  1.0f, -1.0f,
-          -1.0f,  1.0f,  1.0f,
-           1.0f,  1.0f, -1.0f,
-          -1.0f,  1.0f, -1.0f,
+    const float cubeVertices[] = {
+        //pos                //normals
+        -1,-1, 1,            0, 0, 1,
+         1,-1, 1,            0, 0, 1,
+         1, 1, 1,            0, 0, 1,
+        -1, 1, 1,            0, 0, 1,
+
+         1,-1, 1,            1, 0, 0,
+         1,-1,-1,            1, 0, 0,
+         1, 1,-1,            1, 0, 0,
+         1, 1, 1,            1, 0, 0,
+
+         1,-1,-1,            0, 0,-1,
+        -1,-1,-1,            0, 0,-1,
+        -1, 1,-1,            0, 0,-1,
+         1, 1,-1,            0, 0,-1,
+
+        -1,-1,-1,           -1, 0, 0,
+        -1,-1, 1,           -1, 0, 0,
+        -1, 1, 1,           -1, 0, 0,
+        -1, 1,-1,           -1, 0, 0,
+
+        -1,-1,-1,            0,-1, 0,
+         1,-1,-1,            0,-1, 0,
+         1,-1, 1,            0,-1, 0,
+        -1,-1, 1,            0,-1, 0,
+
+        -1, 1, 1,             0, 1, 0,
+         1, 1, 1,             0, 1, 0,
+         1, 1,-1,             0, 1, 0,
+        -1, 1,-1,             0, 1, 0,
     };
 
-    // Define texture coordinates (unchanged)
-    const float uv[] = {
-        // front
-        0.0f, 0.0f,
-        1.0f, 0.0f,
-        1.0f, 1.0f,
-        0.0f, 0.0f,
-        1.0f, 1.0f,
-        0.0f, 1.0f,
-        // right
-        0.0f, 0.0f,
-        1.0f, 0.0f,
-        1.0f, 1.0f,
-        0.0f, 0.0f,
-        1.0f, 1.0f,
-        0.0f, 1.0f,
-        // back
-        0.0f, 0.0f,
-        1.0f, 0.0f,
-        1.0f, 1.0f,
-        0.0f, 0.0f,
-        1.0f, 1.0f,
-        0.0f, 1.0f,
-        // left
-        0.0f, 0.0f,
-        1.0f, 0.0f,
-        1.0f, 1.0f,
-        0.0f, 0.0f,
-        1.0f, 1.0f,
-        0.0f, 1.0f,
-        // bottom
-        0.0f, 0.0f,
-        1.0f, 0.0f,
-        1.0f, 1.0f,
-        0.0f, 0.0f,
-        1.0f, 1.0f,
-        0.0f, 1.0f,
-        // top
-        0.0f, 0.0f,
-        1.0f, 0.0f,
-        1.0f, 1.0f,
-        0.0f, 0.0f,
-        1.0f, 1.0f,
-        0.0f, 1.0f,
+    const float cubeUVs[] = {
+        0,0,  1,0,  1,1,  0,1,
+        0,0,  1,0,  1,1,  0,1,
+        0,0,  1,0,  1,1,  0,1,
+        0,0,  1,0,  1,1,  0,1,
+        0,0,  1,0,  1,1,  0,1,
+        0,0,  1,0,  1,1,  0,1
     };
 
-    // Define indices (unchanged)
-    unsigned int indices[] = {
-        0,  1,  2,  3,  4,  5,     // front
-        6,  7,  8,  9, 10, 11,     // right
-        12, 13, 14, 15, 16, 17,     // back
-        18, 19, 20, 21, 22, 23,     // left
-        24, 25, 26, 27, 28, 29,     // bottom
-        30, 31, 32, 33, 34, 35      // top
+    const unsigned int cubeIndices[] = {
+         0, 1, 2,   2, 3, 0,
+         4, 5, 6,   6, 7, 4,
+         8, 9,10,  10,11, 8,
+        12,13,14,  14,15,12,
+        16,17,18,  18,19,16,
+        20,21,22,  22,23,20
     };
 
-    // Create the Vertex Array Object (VAO)
-    unsigned int VAO;
-    glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO);
+    const float roomVertices[] = {
+        //floor
+        -ROOM_WIDTH, -ROOM_HEIGHT, -ROOM_DEPTH,  0, 1, 0,
+         ROOM_WIDTH, -ROOM_HEIGHT, -ROOM_DEPTH,  0, 1, 0,
+         ROOM_WIDTH, -ROOM_HEIGHT,  ROOM_DEPTH,  0, 1, 0,
+        -ROOM_WIDTH, -ROOM_HEIGHT,  ROOM_DEPTH,  0, 1, 0,
 
-    // Create Vertex Buffer Object (VBO)
-    unsigned int VBO;
-    glGenBuffers(1, &VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+        //ceiling
+        -ROOM_WIDTH, ROOM_HEIGHT, -ROOM_DEPTH,   0,-1, 0,
+         ROOM_WIDTH, ROOM_HEIGHT, -ROOM_DEPTH,   0,-1, 0,
+         ROOM_WIDTH, ROOM_HEIGHT,  ROOM_DEPTH,   0,-1, 0,
+        -ROOM_WIDTH, ROOM_HEIGHT,  ROOM_DEPTH,   0,-1, 0,
 
-    // Create texture buffer
-    unsigned int uvBuffer;
-    glGenBuffers(1, &uvBuffer);
-    glBindBuffer(GL_ARRAY_BUFFER, uvBuffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(uv), uv, GL_STATIC_DRAW);
+        //front
+        -ROOM_WIDTH, -ROOM_HEIGHT, -ROOM_DEPTH,  0, 0, 1,
+         ROOM_WIDTH, -ROOM_HEIGHT, -ROOM_DEPTH,  0, 0, 1,
+         ROOM_WIDTH, ROOM_HEIGHT, -ROOM_DEPTH,    0, 0, 1,
+        -ROOM_WIDTH, ROOM_HEIGHT, -ROOM_DEPTH,    0, 0, 1,
 
-    // Create Element Buffer Object (EBO)
-    unsigned int EBO;
-    glGenBuffers(1, &EBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+        //right
+         ROOM_WIDTH, -ROOM_HEIGHT, -ROOM_DEPTH, -1, 0, 0,
+         ROOM_WIDTH, -ROOM_HEIGHT,  ROOM_DEPTH, -1, 0, 0,
+         ROOM_WIDTH, ROOM_HEIGHT,  ROOM_DEPTH,  -1, 0, 0,
+         ROOM_WIDTH, ROOM_HEIGHT, -ROOM_DEPTH,  -1, 0, 0,
 
-    // Compile shader program
-    unsigned int shaderID;
-    shaderID = LoadShaders("vertexShader.glsl", "fragmentShader.glsl");
+         //back
+          ROOM_WIDTH, -ROOM_HEIGHT,  ROOM_DEPTH,  0, 0,-1,
+         -ROOM_WIDTH, -ROOM_HEIGHT,  ROOM_DEPTH,  0, 0,-1,
+         -ROOM_WIDTH, ROOM_HEIGHT,  ROOM_DEPTH,    0, 0,-1,
+          ROOM_WIDTH, ROOM_HEIGHT,  ROOM_DEPTH,    0, 0,-1,
 
-    // Load the textures
-    unsigned int texture;
-    texture = loadTexture("../assets/crate.jpg");
+          //left
+          -ROOM_WIDTH, -ROOM_HEIGHT,  ROOM_DEPTH,  1, 0, 0,
+          -ROOM_WIDTH, -ROOM_HEIGHT, -ROOM_DEPTH,  1, 0, 0,
+          -ROOM_WIDTH, ROOM_HEIGHT, -ROOM_DEPTH,   1, 0, 0,
+          -ROOM_WIDTH, ROOM_HEIGHT,  ROOM_DEPTH,   1, 0, 0,
+    };
 
-    // Send the texture uniforms to the fragment shader
-    glUseProgram(shaderID);
-    unsigned int textureID = glGetUniformLocation(shaderID, "textureMap");
-    glUniform1i(textureID, 0);
+    const float roomUVs[] = {
+        0,0, 5,0, 5,5, 0,5,
+        0,0, 5,0, 5,5, 0,5,
+        0,0, 5,0, 5,5, 0,5,
+        0,0, 5,0, 5,5, 0,5,
+        0,0, 5,0, 5,5, 0,5,
+        0,0, 5,0, 5,5, 0,5,
+    };
 
-    // Set up the projection matrix (using camera's zoom)
+    const unsigned int roomIndices[] = {
+        0,1,2, 2,3,0,
+        4,5,6, 6,7,4,
+        8,9,10, 10,11,8,
+        12,13,14, 14,15,12,
+        16,17,18, 18,19,16,
+        20,21,22, 22,23,20,
+    };
+
+    //buffer setups
+    unsigned int cubeVAO, cubeVBO, cubeUVVBO, cubeEBO;
+    glGenVertexArrays(1, &cubeVAO);
+    glBindVertexArray(cubeVAO);
+
+    glGenBuffers(1, &cubeVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), cubeVertices, GL_STATIC_DRAW);
+
+    glGenBuffers(1, &cubeUVVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, cubeUVVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(cubeUVs), cubeUVs, GL_STATIC_DRAW);
+
+    glGenBuffers(1, &cubeEBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cubeEBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(cubeIndices), cubeIndices, GL_STATIC_DRAW);
+
+    // position attribute
+    glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+
+    // normal attribute (offset by 3 floats)
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+
+    glBindBuffer(GL_ARRAY_BUFFER, cubeUVVBO);
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
+
+    glBindVertexArray(0);
+
+    unsigned int roomVAO, roomVBO, roomUVVBO, roomEBO;
+    glGenVertexArrays(1, &roomVAO);
+    glBindVertexArray(roomVAO);
+
+    glGenBuffers(1, &roomVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, roomVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(roomVertices), roomVertices, GL_STATIC_DRAW);
+
+    glGenBuffers(1, &roomUVVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, roomUVVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(roomUVs), roomUVs, GL_STATIC_DRAW);
+
+    glGenBuffers(1, &roomEBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, roomEBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(roomIndices), roomIndices, GL_STATIC_DRAW);
+
+    // position attribute
+    glBindBuffer(GL_ARRAY_BUFFER, roomVBO);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+
+    // normal attribute (offset by 3 floats)
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+
+    glBindBuffer(GL_ARRAY_BUFFER, roomUVVBO);
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
+
+    glBindVertexArray(0);
+
+    //loads shaders and assets
+    unsigned int shaderID = LoadShaders("vertexShader.glsl", "fragmentshader.glsl");
+    unsigned int crateTexture = loadTexture("../assets/crate.jpg");
+    unsigned int stoneDiffuse = loadTexture("../assets/stones_diffuse.png");
+    unsigned int stoneNormal = loadTexture("../assets/stones_normal.png");
+    unsigned int stoneSpecular = loadTexture("../assets/stones_specular.png");
+    unsigned int brickDiffuse = loadTexture("../assets/bricks_diffuse.png");
+    unsigned int brickNormal = loadTexture("../assets/bricks_normal.png");
+    unsigned int brickSpecular = loadTexture("../assets/bricks_specular.png");
+
     glm::mat4 projection = glm::perspective(glm::radians(camera.getZoom()), 1024.0f / 768.0f, 0.1f, 100.0f);
+    spotLight.setDirection(glm::vec3(0.0f, -1.0f, 0.0f));
+    light.setColor(glm::vec3(1.0f));
 
-    // Render loop
     float lastFrame = 0.0f;
+
     while (!glfwWindowShouldClose(window))
     {
-        // Calculate delta time
         float currentFrame = glfwGetTime();
         float deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
-        // Process input
         keyboardInput(window);
         camera.ProcessKeyboard(window, deltaTime);
+        checkCollisions(camera);
 
-        // Clear the window
-        glClearColor(0.2f, 0.2f, 0.2f, 0.0f);
+        glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // Update the model matrix with a rotation
-        float rotationAngle = currentFrame * 0.5f;
-        glm::mat4 model = Maths::rotate(rotationAngle, glm::vec3(1.0f, 1.0f, 0.0f));
-
-        // Get the view matrix from the camera
-        glm::mat4 view = camera.getViewMatrix();
-
-        // Compute MVP matrix
-        glm::mat4 MVP = projection * view * model;
-
-        // Send the MVP matrix to the shader
         glUseProgram(shaderID);
-        unsigned int mvpID = glGetUniformLocation(shaderID, "MVP");
-        glUniformMatrix4fv(mvpID, 1, GL_FALSE, &MVP[0][0]);
+        //spotlight
+        glUniform3fv(glGetUniformLocation(shaderID, "lightPos"), 1, glm::value_ptr(light.getPosition()));
+        glUniform3fv(glGetUniformLocation(shaderID, "lightColor"), 1, glm::value_ptr(light.getColor()));
+        glUniform3fv(glGetUniformLocation(shaderID, "viewPos"), 1, glm::value_ptr(camera.getPosition()));
 
-        // Bind the texture
+        glUniform3fv(glGetUniformLocation(shaderID, "spotLightColor"), 1, glm::value_ptr(spotLight.getColor()));
+        glUniform3fv(glGetUniformLocation(shaderID, "spotLightPos"), 1, glm::value_ptr(spotLight.getPosition()));
+        glUniform3fv(glGetUniformLocation(shaderID, "spotLightDir"), 1, glm::value_ptr(spotLight.getDirection()));
+        glUniform1f(glGetUniformLocation(shaderID, "spotCutOff"), spotLight.getCutOff());
+        glUniform1f(glGetUniformLocation(shaderID, "spotOuterCutOff"), spotLight.getOuterCutOff());
+
+        
+        glm::mat4 cubeModel = glm::mat4(1.0f);
+        cubeModel = glm::scale(cubeModel, glm::vec3(0.7f));
+        cubeModel = glm::rotate(cubeModel, currentFrame * 0.5f, glm::vec3(1, 1, 0));
+        glm::mat4 view = camera.getViewMatrix();
+        glm::mat4 cubeMVP = projection * view * cubeModel;
+
+        glUniformMatrix4fv(glGetUniformLocation(shaderID, "MVP"), 1, GL_FALSE, glm::value_ptr(cubeMVP));
+        glUniformMatrix4fv(glGetUniformLocation(shaderID, "model"), 1, GL_FALSE, glm::value_ptr(cubeModel));
+        glUniform1i(glGetUniformLocation(shaderID, "surfaceType"), 0);
+
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture);
+        glBindTexture(GL_TEXTURE_2D, crateTexture);
+        glUniform1i(glGetUniformLocation(shaderID, "diffuseMap"), 0);
+        glUniform1i(glGetUniformLocation(shaderID, "normalMap"), 0);
+        glUniform1i(glGetUniformLocation(shaderID, "specularMap"), 0);
 
-        // Send the VBO to the GPU
-        glEnableVertexAttribArray(0);
-        glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+        glBindVertexArray(cubeVAO);
+        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
-        // Send the UV buffer to the GPU
-        glEnableVertexAttribArray(1);
-        glBindBuffer(GL_ARRAY_BUFFER, uvBuffer);
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
+       
+        glm::mat4 roomModel = glm::mat4(1.0f);
+        glm::mat4 roomMVP = projection * view * roomModel;
 
-        // Draw the triangles
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-        glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(unsigned int), GL_UNSIGNED_INT, 0);
+        glUniformMatrix4fv(glGetUniformLocation(shaderID, "MVP"), 1, GL_FALSE, glm::value_ptr(roomMVP));
+        glUniformMatrix4fv(glGetUniformLocation(shaderID, "model"), 1, GL_FALSE, glm::value_ptr(roomModel));
 
-        glDisableVertexAttribArray(0);
-        glDisableVertexAttribArray(1);
+        glBindVertexArray(roomVAO);
 
-        // Swap buffers
+        //floor
+        glUniform1i(glGetUniformLocation(shaderID, "surfaceType"), 1);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, stoneDiffuse);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, stoneNormal);
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D, stoneSpecular);
+        glUniform1i(glGetUniformLocation(shaderID, "diffuseMap"), 0);
+        glUniform1i(glGetUniformLocation(shaderID, "normalMap"), 1);
+        glUniform1i(glGetUniformLocation(shaderID, "specularMap"), 2);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)0);
+
+        //ceiling
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(6 * sizeof(unsigned int)));
+
+        //walls
+        glUniform1i(glGetUniformLocation(shaderID, "surfaceType"), 2);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, brickDiffuse);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, brickNormal);
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D, brickSpecular);
+        glUniform1i(glGetUniformLocation(shaderID, "diffuseMap"), 0);
+        glUniform1i(glGetUniformLocation(shaderID, "normalMap"), 1);
+        glUniform1i(glGetUniformLocation(shaderID, "specularMap"), 2);
+        glDrawElements(GL_TRIANGLES, 24, GL_UNSIGNED_INT, (void*)(12 * sizeof(unsigned int)));
+
+        //draw spotlight
+        glm::mat4 spotModel = glm::translate(glm::mat4(1.0f), spotLight.getPosition());
+        spotModel = glm::scale(spotModel, glm::vec3(0.1f));
+        glm::mat4 spotMVP = projection * view * spotModel;
+
+        glUniformMatrix4fv(glGetUniformLocation(shaderID, "MVP"), 1, GL_FALSE, glm::value_ptr(spotMVP));
+        glUniformMatrix4fv(glGetUniformLocation(shaderID, "model"), 1, GL_FALSE, glm::value_ptr(spotModel));
+        glUniform1i(glGetUniformLocation(shaderID, "surfaceType"), 0);
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, crateTexture);
+        glUniform1i(glGetUniformLocation(shaderID, "diffuseMap"), 0);
+        glUniform1i(glGetUniformLocation(shaderID, "normalMap"), 0);
+        glUniform1i(glGetUniformLocation(shaderID, "specularMap"), 0);
+
+        glBindVertexArray(cubeVAO);
+        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+
+        glBindVertexArray(0);
+
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
-    // Cleanup
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
-    glDeleteBuffers(1, &EBO);
-    glDeleteBuffers(1, &uvBuffer);
+    //cleanup of course
+    glDeleteVertexArrays(1, &cubeVAO);
+    glDeleteVertexArrays(1, &roomVAO);
+    glDeleteBuffers(1, &cubeVBO);
+    glDeleteBuffers(1, &cubeUVVBO);
+    glDeleteBuffers(1, &cubeEBO);
+    glDeleteBuffers(1, &roomVBO);
+    glDeleteBuffers(1, &roomUVVBO);
+    glDeleteBuffers(1, &roomEBO);
     glDeleteProgram(shaderID);
-    glDeleteTextures(1, &texture);
+    glDeleteTextures(1, &crateTexture);
+    glDeleteTextures(1, &stoneDiffuse);
+    glDeleteTextures(1, &stoneNormal);
+    glDeleteTextures(1, &stoneSpecular);
+    glDeleteTextures(1, &brickDiffuse);
+    glDeleteTextures(1, &brickNormal);
+    glDeleteTextures(1, &brickSpecular);
 
-    // Close OpenGL window and terminate GLFW
     glfwTerminate();
     return 0;
 }
@@ -292,9 +399,22 @@ void keyboardInput(GLFWwindow* window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
+
+    float lightVelocity = LIGHT_SPEED * 0.016f;
+    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+        light.setPosition(light.getPosition() + glm::vec3(0, 0, -lightVelocity));
+    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+        light.setPosition(light.getPosition() + glm::vec3(0, 0, lightVelocity));
+    if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+        light.setPosition(light.getPosition() + glm::vec3(-lightVelocity, 0, 0));
+    if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+        light.setPosition(light.getPosition() + glm::vec3(lightVelocity, 0, 0));
+    if (glfwGetKey(window, GLFW_KEY_PAGE_UP) == GLFW_PRESS)
+        light.setPosition(light.getPosition() + glm::vec3(0, lightVelocity, 0));
+    if (glfwGetKey(window, GLFW_KEY_PAGE_DOWN) == GLFW_PRESS)
+        light.setPosition(light.getPosition() + glm::vec3(0, -lightVelocity, 0));
 }
 
-// Mouse movement callback
 void mouseCallback(GLFWwindow* window, double xpos, double ypos)
 {
     if (firstMouse)
@@ -303,9 +423,8 @@ void mouseCallback(GLFWwindow* window, double xpos, double ypos)
         lastY = ypos;
         firstMouse = false;
     }
-
     float xoffset = xpos - lastX;
-    float yoffset = lastY - ypos; // Reversed since y-coordinates range from bottom to top
+    float yoffset = lastY - ypos; // reversed
     lastX = xpos;
     lastY = ypos;
 
@@ -316,8 +435,24 @@ void mouseCallback(GLFWwindow* window, double xpos, double ypos)
     camera.ProcessMouseMovement(xoffset, yoffset);
 }
 
-// Scroll callback
 void scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
 {
     camera.ProcessMouseScroll(yoffset);
+}
+
+void checkCollisions(Camera& camera)
+{
+    glm::vec3 pos = camera.getPosition();
+    float radius = 0.5f;
+
+    if (pos.x - radius < -ROOM_WIDTH) pos.x = -ROOM_WIDTH + radius;
+    if (pos.x + radius > ROOM_WIDTH) pos.x = ROOM_WIDTH - radius;
+
+    if (pos.y - radius < -ROOM_HEIGHT) pos.y = -ROOM_HEIGHT + radius;
+    if (pos.y + radius > ROOM_HEIGHT) pos.y = ROOM_HEIGHT - radius;
+
+    if (pos.z - radius < -ROOM_DEPTH) pos.z = -ROOM_DEPTH + radius;
+    if (pos.z + radius > ROOM_DEPTH) pos.z = ROOM_DEPTH - radius;
+
+    camera.setPosition(pos);
 }

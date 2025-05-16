@@ -1,12 +1,10 @@
-﻿  camera.cpp
-  maths.cpp
-  coursework.cpp
-C:\Users\HeyTh\Documents\GitHub\Computer-Graphics-Coursework\source\coursework.cpp(225,28): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-C:\Users\HeyTh\Documents\GitHub\Computer-Graphics-Coursework\source\coursework.cpp(302,17): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-C:\Users\HeyTh\Documents\GitHub\Computer-Graphics-Coursework\source\coursework.cpp(303,17): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-C:\Users\HeyTh\Documents\GitHub\Computer-Graphics-Coursework\source\coursework.cpp(307,19): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-C:\Users\HeyTh\Documents\GitHub\Computer-Graphics-Coursework\source\coursework.cpp(308,19): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-C:\Users\HeyTh\Documents\GitHub\Computer-Graphics-Coursework\source\coursework.cpp(309,13): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-C:\Users\HeyTh\Documents\GitHub\Computer-Graphics-Coursework\source\coursework.cpp(310,13): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-C:\Users\HeyTh\Documents\GitHub\Computer-Graphics-Coursework\source\coursework.cpp(322,31): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+﻿  coursework.cpp
+C:\Users\HeyTh\Documents\GitHub\Computer-Graphics-Coursework\source\coursework.cpp(280,28): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\HeyTh\Documents\GitHub\Computer-Graphics-Coursework\source\coursework.cpp(433,17): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\HeyTh\Documents\GitHub\Computer-Graphics-Coursework\source\coursework.cpp(434,17): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\HeyTh\Documents\GitHub\Computer-Graphics-Coursework\source\coursework.cpp(437,19): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\HeyTh\Documents\GitHub\Computer-Graphics-Coursework\source\coursework.cpp(438,19): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\HeyTh\Documents\GitHub\Computer-Graphics-Coursework\source\coursework.cpp(439,13): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\HeyTh\Documents\GitHub\Computer-Graphics-Coursework\source\coursework.cpp(440,13): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\HeyTh\Documents\GitHub\Computer-Graphics-Coursework\source\coursework.cpp(451,31): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
   Computer_Graphics_Coursework.vcxproj -> C:\Users\HeyTh\Documents\GitHub\Computer-Graphics-Coursework\build\Debug\Computer_Graphics_Coursework.exe

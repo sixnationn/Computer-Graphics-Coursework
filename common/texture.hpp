@@ -3,19 +3,19 @@
 
 unsigned int loadTexture(const char *path)
 {
-    // Create and bind texture
+    //creates and binds textures
     unsigned int textureID;
     glGenTextures(1, &textureID);
     glBindTexture(GL_TEXTURE_2D, textureID);
     
-    // Load texture image from file
+    //load texture image
     int width, height, nChannels;
     stbi_set_flip_vertically_on_load(true);
     unsigned char *data = stbi_load(path, &width, &height, &nChannels, 0);
     
     if (data)
     {
-        // Deal with different number of colour channels
+        //colour channels
         GLenum format;
         if (nChannels == 1)
             format = GL_RED;
@@ -40,7 +40,7 @@ unsigned int loadTexture(const char *path)
         printf("Texture %s failed to load.\n", path);
     }
 
-    // Free the image from the memory
+    //frees the image from the memory
     stbi_image_free(data);
     
     return textureID;

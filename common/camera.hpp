@@ -23,7 +23,13 @@ public:
     void ProcessMouseScroll(float yoffset);
 
     // Get the current zoom value
-    float getZoom() const { return Zoom; } // Added getter method
+    float getZoom() const { return Zoom; }
+
+    // Get the current position of the camera
+    glm::vec3 getPosition() const { return Position; }
+
+    // Set the current position of the camera
+    void setPosition(const glm::vec3& position); // Added setter method
 
 private:
     // Camera attributes

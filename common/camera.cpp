@@ -25,6 +25,8 @@ void Camera::ProcessKeyboard(GLFWwindow* window, float deltaTime)
         Position -= Right * velocity;
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         Position += Right * velocity;
+
+    updateCameraVectors(); // Ensure vectors are updated after position change
 }
 
 void Camera::ProcessMouseMovement(float xoffset, float yoffset, GLboolean constrainPitch)
@@ -68,3 +70,10 @@ void Camera::updateCameraVectors()
     Right = glm::normalize(glm::cross(Front, WorldUp));
     Up = glm::normalize(glm::cross(Right, Front));
 }
+
+void Camera::setPosition(const glm::vec3& position)
+{
+    Position = position;
+    updateCameraVectors(); // Update vectors after setting new position
+}
+
